@@ -200,8 +200,36 @@ end, {description = "swap with client below", group = "client"})
         awful.key({ modkey }, "e", function() awful.util.spawn("geany") end,
                   {description = "open geany", group = "launcher"}),
                   
-        awful.key({ modkey, "Shift" }, "Return", function() awful.util.spawn("tilix --quake") end,
-                  {description = "open tilix in quake mode", group = "launcher"}),
+        -- Scratchpad keybindings
+        awful.key({ modkey, "Shift" }, "Return", function() 
+            local scratchpad = require("modules.scratchpad")
+            scratchpad.terminal:toggle()
+        end,
+        {description = "toggle terminal scratchpad", group = "scratchpad"}),
+        
+        awful.key({ modkey, "Shift" }, "f", function() 
+            local scratchpad = require("modules.scratchpad")
+            scratchpad.ranger:toggle()
+        end,
+        {description = "toggle ranger scratchpad", group = "scratchpad"}),
+        
+        awful.key({ modkey, "Shift" }, "v", function() 
+            local scratchpad = require("modules.scratchpad")
+            scratchpad.pulsemixer:toggle()
+        end,
+        {description = "toggle pulsemixer scratchpad", group = "scratchpad"}),
+        
+        awful.key({ modkey, "Shift" }, "m", function() 
+            local scratchpad = require("modules.scratchpad")
+            scratchpad.music:toggle()
+        end,
+        {description = "toggle music player scratchpad", group = "scratchpad"}),
+        
+        awful.key({ modkey, "Shift" }, "p", function() 
+            local scratchpad = require("modules.scratchpad")
+            scratchpad.pavucontrol:toggle()
+        end,
+        {description = "toggle pavucontrol scratchpad", group = "scratchpad"}),
                   
         awful.key({ modkey, "Shift" }, "b", function() awful.util.spawn("firefox --private-window") end,
                   {description = "open firefox in private mode", group = "launcher"}),

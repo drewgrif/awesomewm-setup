@@ -42,8 +42,15 @@ keybindings.init()
 local mousebindings = require("modules.mousebindings")
 mousebindings.init()
 
-local notifications = require("modules.notifications")
-notifications.init()
+-- Disabled to use dunst instead
+-- local notifications = require("modules.notifications")
+-- notifications.init()
+
+-- Release D-Bus interface so dunst can handle notifications
+-- Disabled naughty completely to allow dunst to work
+-- local naughty = require("naughty")
+-- naughty.destroy_all_notifications()
+-- naughty.config.notify_callback = function() return false end
 
 -- User applications and startup
 local autostart = require("modules.autostart")

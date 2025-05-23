@@ -1,5 +1,12 @@
   * {
-        bg: #161616;
+        /* GitHub Dark theme colors */
+        bg: #0d1117;              /* GitHub background */
+        fg: #d0d7de;              /* GitHub foreground */
+        selection: #539bf5;       /* GitHub blue for selection */
+        border: #539bf5;          /* GitHub blue for borders */
+        urgent: #ff7b72;          /* GitHub red for urgent */
+        text-dark: #0d1117;       /* Dark text on light bg */
+        comment: #8b949e;         /* GitHub comment color */
         background-color: @bg;
     }
 
@@ -15,7 +22,7 @@
 	    width: 45%;
 	    transparency: "real";
 	    orientation: vertical;
-	    border-color: #DBC704;
+	    border-color: @border;
         border-radius: 10px;
     }
 
@@ -29,13 +36,13 @@
 
     element {
 	    padding: 4 12;
-	    text-color: #161616;
+	    text-color: @fg;
         border-radius: 5px;
     }
 
     element selected {
-	    text-color: #ffffff;
-	    background-color: #DBC704;
+	    text-color: @bg;
+	    background-color: @selection;
     }
 
     element-text {
@@ -51,41 +58,41 @@
     }
 
 	element.selected.active {
-		background-color: #161616;
-		text-color: #F2F4F8;
+		background-color: @bg;
+		text-color: @fg;
 	}
  
 	element.alternate.normal {
-		background-color: #161616;
-		text-color: #F2F4F8;
+		background-color: @bg;
+		text-color: @fg;
 	}
 
  
 	element.alternate.active {
-		background-color: #ff8f40;
-		text-color: #F2F4F8;
+		background-color: @selection;
+		text-color: @bg;
 	}
 
 	element.selected.normal {
-		background-color: #ff8f40;
-		text-color: #161616;
+		background-color: @selection;
+		text-color: @bg;
 	}
  
 
 	element.normal.active {
-		background-color: #161616;
-		text-color: #F2F4F8;
+		background-color: @bg;
+		text-color: @fg;
 	}
  
 
 	element.normal.normal {
-		background-color: #161616;
-		text-color: #F2F4F8;
+		background-color: @bg;
+		text-color: @fg;
 	}
  
 	element.normal.urgent {
-		background-color: #f25d78;
-		text-color: #161616;
+		background-color: @urgent;
+		text-color: @bg;
 	}
 
 	
@@ -104,7 +111,7 @@
     //------------------------------------------------
 
     entry {
-	    text-color: #f27893;
+	    text-color: @fg;
 	    padding: 10 10 0 0;
 	    margin: 0 -2 0 0;
     }
@@ -115,9 +122,8 @@
     } 
 
     prompt {
-	    text-color: #78a9ff;
+	    text-color: @selection;
 	    padding: 10 6 0 10;
 	    margin: 0 -2 0 0;
     }
-
 

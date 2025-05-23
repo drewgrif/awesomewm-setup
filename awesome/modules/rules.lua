@@ -49,6 +49,29 @@ local rules = {
             awful.placement.centered(c)
         end
     },
+    -- Scratchpad terminals and apps
+    {
+        rule_any = { 
+            instance = {
+                "scratchpad",
+                "scratchpad-terminal",
+                "scratchpad-ranger",
+                "scratchpad-pulsemixer",
+                "scratchpad-music",
+                "pavucontrol"
+            },
+            class = {
+                "St-scratchpad"
+            }
+        },
+        properties = {
+            floating = true,
+            sticky = true,
+            ontop = true,
+            skip_taskbar = true,
+            requests_no_titlebar = true
+        }
+    },
     -- Galculator specific size
     {
         rule = { class = "Galculator" },

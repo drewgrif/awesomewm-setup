@@ -9,7 +9,7 @@ awful = require("awful")
 require("awful.autofocus")
 wibox = require("wibox")
 beautiful = require("beautiful")
-naughty = require("naughty")
+-- naughty = require("naughty")  -- Disabled to use dunst
 menubar = require("menubar")
 hotkeys_popup = require("awful.hotkeys_popup")
 require("awful.hotkeys_popup.keys")
@@ -33,7 +33,7 @@ return {
     awful = awful,
     wibox = wibox,
     beautiful = beautiful,
-    naughty = naughty,
+    -- naughty = naughty,  -- Disabled to use dunst
     menubar = menubar,
     hotkeys_popup = hotkeys_popup,
     debian_menu = debian_menu,

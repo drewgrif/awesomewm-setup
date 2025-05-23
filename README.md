@@ -10,14 +10,89 @@ Features GitHub-themed styling, smart keybindings, and a comprehensive widget sy
 
 ## 🚀 Installation
 
+### Quick Install (Debian/Ubuntu)
 ```bash
-git clone https://github.com/drewgrif/awesome-setup.git
-cd awesome-setup
+git clone https://github.com/drewgrif/awesomewm-setup.git
+cd awesomewm-setup
 chmod +x install.sh
 ./install.sh
 ```
 
-This script assumes a fresh Debian or Debian-based install with `sudo` access.
+### Installation Options
+
+The installer now supports various options for different use cases:
+
+```bash
+./install.sh [OPTIONS]
+
+Options:
+  --only-config       Only copy config files (perfect for non-Debian distros)
+  --skip-packages     Skip apt package installation
+  --skip-themes       Skip theme, icon, and font installations
+  --skip-butterscripts Skip all external script installations
+  --dry-run          Show what would be done without making changes
+  --help             Show usage information
+```
+
+### Distribution-Agnostic Installation
+
+<details>
+<summary><strong>⚠️ UNSUPPORTED: Instructions for other distributions (click to expand)</strong></summary>
+
+**IMPORTANT:** These instructions are provided as-is for advanced users. Non-Debian distributions are **NOT officially supported**. Package names and availability may vary. Use at your own risk.
+
+**Arch Linux:**
+```bash
+# Install dependencies (package names may differ)
+sudo pacman -S awesome rofi dunst picom thunar xorg-xbacklight \
+  pamixer pavucontrol feh redshift flameshot firefox \
+  network-manager-applet xfce4-power-manager ttf-font-awesome
+
+# Copy configuration files
+./install.sh --only-config
+```
+
+**Fedora:**
+```bash
+# Install dependencies (package names may differ)
+sudo dnf install awesome rofi dunst picom thunar xbacklight \
+  pamixer pavucontrol feh redshift flameshot firefox \
+  network-manager-applet xfce4-power-manager fontawesome-fonts
+
+# Copy configuration files
+./install.sh --only-config
+```
+
+**openSUSE:**
+```bash
+# Install dependencies (package names may differ)
+sudo zypper install awesome rofi dunst picom thunar xbacklight \
+  pamixer pavucontrol feh redshift flameshot firefox \
+  NetworkManager-applet xfce4-power-manager fontawesome-fonts
+
+# Copy configuration files
+./install.sh --only-config
+```
+
+</details>
+
+### Advanced Usage Examples
+
+```bash
+# Preview what will be installed
+./install.sh --dry-run
+
+# Update only configuration files
+./install.sh --only-config
+
+# Skip package installation if already installed
+./install.sh --skip-packages
+
+# Install without themes and fonts
+./install.sh --skip-themes
+```
+
+**Note:** The script can be run from any location - it automatically detects its directory.
 
 ---
 
@@ -34,6 +109,7 @@ This script assumes a fresh Debian or Debian-based install with `sudo` access.
 | `mousebindings.lua` | Mouse controls and behaviors |
 | `notifications.lua` | GitHub-themed notification system |
 | `rules.lua` | Window behavior and appearance rules |
+| `scratchpad.lua` | Scratchpad terminal functionality |
 | `screens.lua` | Multi-monitor and wallpaper handling |
 | `signals.lua` | Event response configuration |
 | `theme.lua` | Visual theming loader |
@@ -61,6 +137,7 @@ This script assumes a fresh Debian or Debian-based install with `sudo` access.
 - Application launching shortcuts
 - Media controls (volume, brightness)
 - Screenshot capabilities
+- Scratchpad terminals (Super+Shift+Return for terminal, and more)
 
 ### GitHub-Themed Notifications
 - Rounded corners with GitHub color scheme
@@ -108,6 +185,7 @@ The following layouts are included:
 │   ├── mousebindings.lua    # Mouse controls
 │   ├── notifications.lua    # GitHub-themed notifications
 │   ├── rules.lua            # Window behaviors
+│   ├── scratchpad.lua       # Scratchpad terminal
 │   ├── screens.lua          # Multi-monitor support
 │   ├── signals.lua          # Event handling
 │   ├── theme.lua            # Theme loader
@@ -117,8 +195,15 @@ The following layouts are included:
 ├── themes/
 │   └── default/
 │       └── theme.lua        # Visual theme settings
-└── scripts/
-    └── autorun.sh          # Startup applications
+├── scripts/
+│   └── autorun.sh          # Startup applications
+├── dunst/
+│   └── dunstrc             # Notification daemon config
+├── rofi/
+│   ├── config.rasi         # Rofi launcher config
+│   └── power.rasi          # Power menu theme
+└── picom/
+    └── picom.conf          # Compositor configuration
 ```
 
 ---
@@ -238,6 +323,24 @@ Sets rules for how different windows behave when created.
 - Application-specific sizing
 - Titlebar controls
 - Tag assignments for specific applications
+
+---
+
+### 🗂️ scratchpad.lua
+**What it does:**  
+Provides dropdown terminals and applications that can be toggled with keyboard shortcuts.
+
+**Key features:**
+- Multiple scratchpad applications:
+  - Terminal: Super+Shift+Return
+  - File manager (ranger): Super+Shift+F
+  - Volume mixer: Super+Shift+V
+  - Music player: Super+Shift+M
+  - Audio control: Super+Shift+P
+- Animated slide-down effect
+- Maintains state across toggles
+- Positioned at top of screen
+- Takes 90% width, 50% height
 
 ---
 
@@ -367,6 +470,9 @@ layouts.init()
 
 local autostart = require("modules.autostart")
 autostart.init()
+
+local scratchpad = require("modules.scratchpad")
+scratchpad.init()
 ```
 
 ---

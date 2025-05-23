@@ -1,127 +1,269 @@
 #!/bin/bash
 
-# ========================================
-# Script Banner and Intro
-# ========================================
+# ============================================
+# JustAGuy Linux - AwesomeWM Automated Setup Script
+# https://github.com/drewgrif/awesomewm-setup
+# ============================================
+
+LOG_FILE="$HOME/justaguylinux-awesomewm-install.log"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+# Make script location-independent
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLONED_DIR="$SCRIPT_DIR"
+CONFIG_DIR="$HOME/.config/awesome"
+INSTALL_DIR="$HOME/installation"
+BUTTERSCRIPTS_REPO="https://github.com/drewgrif/butterscripts"
+
+# Installation options
+SKIP_PACKAGES=false
+SKIP_THEMES=false
+SKIP_BUTTERSCRIPTS=false
+DRY_RUN=false
+ONLY_CONFIG=false
+
+# Parse command line options
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --skip-packages)
+            SKIP_PACKAGES=true
+            shift
+            ;;
+        --skip-themes)
+            SKIP_THEMES=true
+            shift
+            ;;
+        --skip-butterscripts)
+            SKIP_BUTTERSCRIPTS=true
+            shift
+            ;;
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        --only-config)
+            ONLY_CONFIG=true
+            shift
+            ;;
+        --help)
+            echo "Usage: $0 [OPTIONS]"
+            echo "Options:"
+            echo "  --skip-packages      Skip apt package installation"
+            echo "  --skip-themes        Skip theme, icon, and font installations"
+            echo "  --skip-butterscripts Skip all butterscript installations"
+            echo "  --dry-run           Show what would be done without making changes"
+            echo "  --only-config       Only copy config files (skip all installations)"
+            echo "  --help              Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+# Create a unique base temporary directory for this run
+MAIN_TEMP_DIR="/tmp/justaguylinux_awesomewm_$(date +%s)_$$"
+mkdir -p "$MAIN_TEMP_DIR"
+
+command_exists() {
+    command -v "$1" &>/dev/null
+}
+
+# ============================================
+# Error Handling
+# ============================================
+die() {
+    echo "ERROR: $*" >&2
+    exit 1
+}
+
+# ============================================
+# Temporary Directory Management
+# ============================================
+create_temp_dir() {
+    local name="$1"
+    local temp_dir="$MAIN_TEMP_DIR/$name"
+    mkdir -p "$temp_dir"
+    echo "$temp_dir"
+}
+
+# Clean up all temporary directories on exit (success or failure)
+cleanup() {
+    echo "Cleaning up temporary files..."
+    rm -rf "$MAIN_TEMP_DIR"
+    rm -rf "$INSTALL_DIR"
+    echo "Cleanup completed."
+}
+trap cleanup EXIT
+
+# ============================================
+# Script Fetching Functions
+# ============================================
+get_butterscript() {
+    local script_path="$1"
+    local script_name=$(basename "$script_path")
+    local temp_script="$MAIN_TEMP_DIR/scripts/$script_name"
+    
+    # Create directory for downloaded scripts
+    mkdir -p "$MAIN_TEMP_DIR/scripts"
+    
+    echo "Fetching script: $script_path from butterscripts repository..."
+    
+    # Quietly download the script
+    wget -q -O "$temp_script" "https://raw.githubusercontent.com/drewgrif/butterscripts/main/$script_path"
+    local wget_status=$?
+    
+    # Check if the download was successful
+    if [ $wget_status -ne 0 ] || [ ! -f "$temp_script" ] || [ ! -s "$temp_script" ]; then
+        echo "ERROR: Failed to download script: $script_path (wget status: $wget_status)"
+        return 1
+    fi
+    
+    # Fix line endings
+    sed -i 's/\r$//' "$temp_script" 2>/dev/null
+    
+    # Make executable
+    chmod +x "$temp_script"
+    
+    # Success - return 0 instead of the path
+    return 0
+}
+
+run_butterscript() {
+    local script_path="$1"
+    local script_name=$(basename "$script_path" .sh)
+    local script_file="$MAIN_TEMP_DIR/scripts/$(basename "$script_path")"
+    
+    echo "Preparing to run: $script_path"
+    
+    # Download the script
+    get_butterscript "$script_path"
+    local get_status=$?
+    
+    if [ $get_status -ne 0 ]; then
+        echo "ERROR: Failed to download script: $script_path"
+        return 1
+    fi
+    
+    # Check that the file exists directly
+    if [ ! -f "$script_file" ]; then
+        echo "ERROR: Script file does not exist: $script_file"
+        return 1
+    fi
+    
+    # Create a temporary directory for the script to use
+    local script_temp_dir="$MAIN_TEMP_DIR/${script_name}_workdir"
+    mkdir -p "$script_temp_dir"
+    
+    echo "Running script: $script_path"
+    echo "Script file: $script_file"
+    echo "Work directory: $script_temp_dir"
+    
+    # Run the script
+    SCRIPT_TEMP_DIR="$script_temp_dir" bash "$script_file"
+    local run_status=$?
+    
+    if [ $run_status -ne 0 ]; then
+        echo "ERROR: Script execution failed with status: $run_status"
+        return 1
+    fi
+    
+    echo "Script execution completed successfully."
+    return 0
+}
+
+# ============================================
+# Confirm User Intention
+# ============================================
 clear
 echo "
  +-+-+-+-+-+-+-+-+-+-+-+-+-+ 
  |j|u|s|t|a|g|u|y|l|i|n|u|x| 
  +-+-+-+-+-+-+-+-+-+-+-+-+-+ 
  |a|w|e|s|o|m|e|w|m| |s|e|t|u|p|  
- +-+-+-+-+-+-+-+-+-+-+-+-+-+                                                                             
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+                                                                            
 "
 
-CLONED_DIR="$HOME/awesomewm-setup"
-CONFIG_DIR="$HOME/.config/awesome"
-INSTALL_DIR="$HOME/installation"
-GTK_THEME="https://github.com/vinceliuice/Orchis-theme.git"
-ICON_THEME="https://github.com/vinceliuice/Colloid-icon-theme.git"
-
-# ========================================
-# User Confirmation Before Proceeding
-# ========================================
-echo "This script will install and configure AwesomeWM on your Debian system."
-read -p "Do you want to continue? (y/n) " confirm
-if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-    echo "Installation aborted."
-    exit 1
+if [ "$ONLY_CONFIG" = true ]; then
+    echo "This script will copy AwesomeWM configuration files only."
+else
+    echo "This script will install and configure AwesomeWM on your Debian system."
 fi
 
-sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get clean
+if [ "$DRY_RUN" = true ]; then
+    echo "[DRY RUN MODE] No changes will be made to your system."
+fi
 
-# ========================================
-# Initialization
-# ========================================
-mkdir -p "$INSTALL_DIR" || { echo "Failed to create installation directory."; exit 1; }
+read -p "Do you want to continue? (y/n) " confirm
+[[ ! "$confirm" =~ ^[Yy]$ ]] && die "Installation aborted."
 
-cleanup() {
-    rm -rf "$INSTALL_DIR"
-    echo "Installation directory removed."
-}
-trap cleanup EXIT
-
-# ========================================
-# Check for Existing AwesomeWM Configuration
-# ========================================
-check_awesome() {
-    if [ -d "$CONFIG_DIR" ]; then
-        echo "An existing ~/.config/awesome directory was found."
-        read -p "Would you like to back it up before proceeding? (y/n) " response
-        if [[ "$response" =~ ^[Yy]$ ]]; then
-            timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
-            backup_dir="$HOME/.config/awesome_backup_$timestamp"
-            mv "$CONFIG_DIR" "$backup_dir"
-            echo "Backup created at $backup_dir"
-        else
-            echo "Skipping backup. Your existing config will be overwritten."
-        fi
-    fi
-}
-
-# ========================================
-# Move Config Files to ~/.config/awesome
-# ========================================
-setup_awesome_config() {
-    echo "Setting up AwesomeWM configuration directory..."
-    
-    # Create the config directory if it doesn't exist
-    mkdir -p "$CONFIG_DIR"
-    
-    # Check if the cloned repository directory exists
-    if [ -d "$CLONED_DIR" ]; then
-        # Check if the config directory in the cloned repository exists
-        if [ -d "$CLONED_DIR/config" ]; then
-            # Copy all contents from the cloned repo's config directory to ~/.config/awesome
-            cp -a "$CLONED_DIR/config/." "$CONFIG_DIR/" || { 
-                echo "Error: Failed to copy AwesomeWM config contents from $CLONED_DIR/config/."
-                exit 1
-            }
-            echo "AwesomeWM configuration files copied successfully from $CLONED_DIR/config/."
-        # Alternative path - check if there's an awesome directory directly in the cloned repo
-        elif [ -d "$CLONED_DIR/awesome" ]; then
-            # Copy all contents from the cloned repo's awesome directory to ~/.config/awesome
-            cp -a "$CLONED_DIR/awesome/." "$CONFIG_DIR/" || {
-                echo "Error: Failed to copy AwesomeWM config contents from $CLONED_DIR/awesome/."
-                exit 1
-            }
-            echo "AwesomeWM configuration files copied successfully from $CLONED_DIR/awesome/."
-        # If no config directories are found, check if the repo itself contains the config files
-        elif [ -f "$CLONED_DIR/rc.lua" ]; then
-            # Copy all contents from the cloned repo directly to ~/.config/awesome
-            cp -a "$CLONED_DIR/." "$CONFIG_DIR/" || {
-                echo "Error: Failed to copy AwesomeWM config contents from $CLONED_DIR/."
-                exit 1
-            }
-            echo "AwesomeWM configuration files copied successfully from $CLONED_DIR/."
-        else
-            echo "Error: Could not find AwesomeWM configuration files in the cloned repository."
-            echo "Please check the structure of your repository and ensure it contains the necessary configuration files."
-            exit 1
-        fi
+if [ "$ONLY_CONFIG" = false ] && [ "$SKIP_PACKAGES" = false ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would run: sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get clean"
     else
-        echo "Error: Cloned repository directory ($CLONED_DIR) not found."
-        echo "Please make sure you have cloned the repository to $CLONED_DIR before running this script."
-        exit 1
+        sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get clean
     fi
-}
+fi
 
-# ========================================
-# Install Packages
-# ========================================
+# ============================================
+# Install Required Packages
+# ============================================
 install_packages() {
+    if [ "$SKIP_PACKAGES" = true ] || [ "$ONLY_CONFIG" = true ]; then
+        echo "Skipping package installation..."
+        return
+    fi
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would install packages: awesome, dunst, rofi, thunar, and dependencies"
+        return
+    fi
+    
     echo "Installing required packages..."
-    sudo apt-get install -y awesome awesome-extra awesome-doc xorg xorg-dev xbacklight xbindkeys xvkbd xinput build-essential network-manager-gnome pamixer thunar thunar-archive-plugin thunar-volman lxappearance dialog mtools avahi-daemon acpi acpid gvfs-backends xfce4-power-manager pavucontrol pulsemixer tilix feh fonts-recommended fonts-font-awesome fonts-terminus exa suckless-tools redshift flameshot qimgv rofi libnotify-bin xdotool unzip libnotify-dev firefox-esr geany geany-plugin-addons geany-plugin-git-changebar geany-plugin-spellcheck geany-plugin-treebrowser geany-plugin-markdown geany-plugin-insertnum geany-plugin-lineoperations geany-plugin-automark pipewire-audio nala micro xdg-user-dirs-gtk lightdm lua-check || echo "Warning: Package installation failed."
+    sudo apt-get install -y awesome awesome-extra awesome-doc xorg xorg-dev xbacklight xbindkeys xvkbd xinput build-essential network-manager-gnome pamixer thunar thunar-archive-plugin thunar-volman lxappearance dialog mtools smbclient cifs-utils avahi-daemon acpi acpid gvfs-backends xfce4-power-manager pavucontrol pulsemixer feh fonts-recommended fonts-font-awesome fonts-terminus exa suckless-tools redshift flameshot qimgv rofi dunst libnotify-bin xdotool unzip libnotify-dev firefox-esr pipewire-audio nala micro xdg-user-dirs-gtk lua-check || echo "Warning: Package installation failed."
     echo "Package installation completed."
 }
 
+install_reqs() {
+    if [ "$SKIP_PACKAGES" = true ] || [ "$ONLY_CONFIG" = true ]; then
+        echo "Skipping build dependencies installation..."
+        return
+    fi
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would install build dependencies: cmake, meson, ninja-build, curl, pkg-config"
+        return
+    fi
+    
+    echo "Updating package lists and installing required dependencies..."
+    sudo apt-get install -y cmake meson ninja-build curl pkg-config || { echo "Package installation failed."; exit 1; }
+}
+
+# ============================================
+# Enable System Services
+# ============================================
 enable_services() {
+    if [ "$ONLY_CONFIG" = true ]; then
+        echo "Skipping service configuration..."
+        return
+    fi
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would enable services: avahi-daemon, acpid"
+        return
+    fi
+    
     echo "Enabling required services..."
     sudo systemctl enable avahi-daemon || echo "Warning: Failed to enable avahi-daemon."
     sudo systemctl enable acpid || echo "Warning: Failed to enable acpid."
-    echo "Services enabled."
 }
 
+# ============================================
+# Set Up User Directories
+# ============================================
 setup_user_dirs() {
     echo "Updating user directories..."
     xdg-user-dirs-update || echo "Warning: Failed to update user directories."
@@ -129,129 +271,193 @@ setup_user_dirs() {
     echo "User directories updated."
 }
 
-command_exists() {
-    command -v "$1" &>/dev/null
-}
-
-install_reqs() {
-    echo "Installing required dev packages..."
-    sudo apt-get install -y cmake meson ninja-build curl pkg-config || { echo "Package installation failed."; exit 1; }
-}
-
-install_ftlabs_picom() {
-    if command_exists picom; then
-        echo "Picom is already installed. Skipping."
-        return
-    fi
-    sudo apt-get install -y libconfig-dev libdbus-1-dev libegl-dev libev-dev libgl-dev libepoxy-dev libpcre2-dev libpixman-1-dev libx11-xcb-dev libxcb1-dev libxcb-composite0-dev libxcb-damage0-dev libxcb-dpms0-dev libxcb-glx0-dev libxcb-image0-dev libxcb-present-dev libxcb-randr0-dev libxcb-render0-dev libxcb-render-util0-dev libxcb-shape0-dev libxcb-util-dev libxcb-xfixes0-dev libxext-dev meson ninja-build uthash-dev
-    git clone https://github.com/FT-Labs/picom "$INSTALL_DIR/picom" || return
-    cd "$INSTALL_DIR/picom"
-    meson setup --buildtype=release build
-    ninja -C build
-    sudo ninja -C build install
-}
-
-install_fastfetch() {
-    if command_exists fastfetch; then
-        echo "Fastfetch is already installed. Skipping."
-    else
-        echo "Installing Fastfetch..."
-        git clone https://github.com/fastfetch-cli/fastfetch "$INSTALL_DIR/fastfetch" || return
-        cd "$INSTALL_DIR/fastfetch"
-        cmake -S . -B build && cmake --build build && sudo mv build/fastfetch /usr/local/bin/
-    fi
-
-    echo "Setting up Fastfetch config..."
-    mkdir -p "$HOME/.config/fastfetch"
-    wget -O "$HOME/.config/fastfetch/config.jsonc" "https://raw.githubusercontent.com/drewgrif/jag_dots/main/.config/fastfetch/config.jsonc" || echo "Warning: Failed to download config.jsonc"
-}
-
-install_wezterm() {
-    if command_exists wezterm; then
-        echo "Wezterm is already installed. Skipping."
-        return
-    fi
-    WEZTERM_URL="https://github.com/wezterm/wezterm/releases/download/20240203-110809-5046fc22/wezterm-20240203-110809-5046fc22.Debian12.deb"
-    TMP_DEB="/tmp/wezterm.deb"
-    wget -O "$TMP_DEB" "$WEZTERM_URL" && sudo apt install -y "$TMP_DEB" && rm -f "$TMP_DEB"
-    mkdir -p "$HOME/.config/wezterm"
-    wget -O "$HOME/.config/wezterm/wezterm.lua" "https://raw.githubusercontent.com/drewgrif/jag_dots/main/.config/wezterm/wezterm.lua" || die "Failed to download wezterm config."
-}
-
-install_fonts() {
-    echo "Installing fonts..."
-    mkdir -p ~/.local/share/fonts
-    fonts=("FiraCode" "Hack" "JetBrainsMono" "RobotoMono" "SourceCodePro" "UbuntuMono")
-    for font in "${fonts[@]}"; do
-        if ! ls ~/.local/share/fonts/$font/*.ttf &>/dev/null; then
-            wget -q "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/$font.zip" -P /tmp && unzip -q /tmp/$font.zip -d ~/.local/share/fonts/$font/ && rm /tmp/$font.zip
+# ============================================
+# Check for Existing AwesomeWM Config
+# ============================================
+check_awesomewm() {
+    if [ -d "$CONFIG_DIR" ]; then
+        echo "An existing ~/.config/awesome directory was found."
+        read -p "Backup existing configuration? (y/n) " response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            backup_dir="$HOME/.config/awesome_backup_$(date +%Y-%m-%d_%H-%M-%S)"
+            mv "$CONFIG_DIR" "$backup_dir" || die "Failed to backup existing config."
+            echo "Backup saved to $backup_dir"
         fi
+    fi
+}
+
+# ============================================
+# Move Config Files
+# ============================================
+setup_awesomewm_config() {
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would copy AwesomeWM configuration files to $CONFIG_DIR"
+        return
+    fi
+    
+    mkdir -p "$CONFIG_DIR"
+    cp -r "$CLONED_DIR/awesome/rc.lua" "$CONFIG_DIR/" || echo "Warning: Failed to copy rc.lua."
+    for dir in modules themes wallpaper scripts picom rofi dunst; do
+        cp -r "$CLONED_DIR/awesome/$dir" "$CONFIG_DIR/" || echo "Warning: Failed to copy $dir."
     done
-    fc-cache -f
-    echo "Fonts installed."
+    
+    echo "AwesomeWM configuration files copied successfully."
 }
 
+# ============================================
+# Install ft-picom
+# ============================================
+install_ftlabs_picom() {
+    if [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
+        echo "Skipping picom installation..."
+        return
+    fi
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would install ftlabs picom from butterscripts"
+        return
+    fi
+    
+    run_butterscript "setup/install_picom.sh"
+}
+
+# ============================================
+# Install Wezterm
+# ============================================
+install_wezterm() {
+    if [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
+        echo "Skipping wezterm installation..."
+        return
+    fi
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would install wezterm from butterscripts"
+        return
+    fi
+    
+    run_butterscript "wezterm/install_wezterm.sh"
+}
+
+# ============================================
+# Install st
+# ============================================
+install_st() {
+    if [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
+        echo "Skipping st terminal installation..."
+        return
+    fi
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would install st terminal from butterscripts"
+        return
+    fi
+    
+    run_butterscript "st/install_st.sh"
+}
+
+# ============================================
+# Install Fonts
+# ============================================
+install_fonts() {
+    if [ "$SKIP_THEMES" = true ] || [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
+        echo "Skipping font installation..."
+        return
+    fi
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would install nerd fonts from butterscripts"
+        return
+    fi
+    
+    echo "Installing fonts..."
+    run_butterscript "theming/install_nerdfonts.sh"
+}
+
+# ============================================
+# Install GTK Theme & Icons
+# ============================================
 install_theming() {
-    GTK_THEME_NAME="Orchis-Grey-Dark"
-    ICON_THEME_NAME="Colloid-Grey-Dracula-Dark"
-    if [ ! -d "$HOME/.themes/$GTK_THEME_NAME" ]; then
-        git clone "$GTK_THEME" "$INSTALL_DIR/Orchis-theme"
-        cd "$INSTALL_DIR/Orchis-theme"
-        yes | ./install.sh -c dark -t teal grey default --tweaks black
+    if [ "$SKIP_THEMES" = true ] || [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
+        echo "Skipping theme installation..."
+        return
     fi
-    if [ ! -d "$HOME/.icons/$ICON_THEME_NAME" ]; then
-        git clone "$ICON_THEME" "$INSTALL_DIR/Colloid-icon-theme"
-        cd "$INSTALL_DIR/Colloid-icon-theme"
-        ./install.sh -t teal orange grey -s default gruvbox dracula
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would install GTK themes and icons from butterscripts"
+        return
     fi
+    
+    run_butterscript "theming/install_theme.sh"
 }
 
-change_theming() {
-    mkdir -p ~/.config/gtk-3.0
-    cat << EOF > ~/.config/gtk-3.0/settings.ini
-[Settings]
-gtk-theme-name=Orchis-Grey-Dark
-gtk-icon-theme-name=Colloid-Grey-Dracula-Dark
-gtk-font-name=Sans 10
-gtk-cursor-theme-name=Adwaita
-gtk-cursor-theme-size=0
-EOF
-    cat << EOF > ~/.gtkrc-2.0
-gtk-theme-name="Orchis-Grey-Dark"
-gtk-icon-theme-name="Colloid-Grey-Dracula-Dark"
-gtk-font-name="Sans 10"
-gtk-cursor-theme-name="Adwaita"
-gtk-cursor-theme-size=0
-EOF
-    echo "GTK theming applied."
+# ============================================
+# Install Login Manager
+# ============================================
+install_displaymanager() {
+    if [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
+        echo "Skipping display manager installation..."
+        return
+    fi
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would install LightDM from butterscripts"
+        return
+    fi
+    
+    run_butterscript "system/install_lightdm.sh"
 }
 
+# ============================================
+# Replace .bashrc
+# ============================================
 replace_bashrc() {
-    echo "Replace your .bashrc with justaguylinux version? (y/n)"
-    read response
-    if [[ "$response" =~ ^[Yy]$ ]]; then
-        [ -f ~/.bashrc ] && mv ~/.bashrc ~/.bashrc.bak
-        wget -O ~/.bashrc https://raw.githubusercontent.com/drewgrif/jag_dots/main/.bashrc && source ~/.bashrc
+    if [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
+        echo "Skipping bashrc configuration..."
+        return
     fi
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would update bashrc from butterscripts"
+        return
+    fi
+    
+    run_butterscript "system/add_bashrc.sh"
 }
 
+# ============================================
+# Install Optional Packages
+# ============================================
+install_optionals() {
+    if [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
+        echo "Skipping optional tools installation..."
+        return
+    fi
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo "[DRY RUN] Would install optional tools from butterscripts"
+        return
+    fi
+    
+    run_butterscript "setup/optional_tools.sh"
+}
 
-# ========================================
-# Main Script Execution
-# ========================================
-echo "Starting AwesomeWM setup..."
-check_awesome
+# ============================================
+# Main Execution
+# ============================================
 install_packages
+install_reqs
 enable_services
 setup_user_dirs
-install_reqs
+check_awesomewm
+setup_awesomewm_config
 install_ftlabs_picom
-install_fastfetch
+install_st
 install_wezterm
 install_fonts
 install_theming
-setup_awesome_config
-change_theming
+install_displaymanager
 replace_bashrc
+install_optionals
+
 echo "All installations completed successfully!"
 echo "Log out and select AwesomeWM from your display manager to start using it."

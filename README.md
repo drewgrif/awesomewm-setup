@@ -1,5 +1,7 @@
 # 🪄 AwesomeWM Modular Configuration
 
+![Made for Debian](https://img.shields.io/badge/Made%20for-Debian-A81D33?style=for-the-badge&logo=debian&logoColor=white)
+
 A modular, organized AwesomeWM configuration with clean separation of components.  
 Features GitHub-themed styling, smart keybindings, and a comprehensive widget system — ready to use out of the box.
 
@@ -487,4 +489,9 @@ The most common customizations:
 - **autostart.lua**: Manage startup programs
 - **widgets.lua**: Add/remove system monitors
 - **rules.lua**: Change how specific apps behave
+
+## 📺 Watch on YouTube
+
+Want to see how it looks and works?  
+🎥 Check out [JustAGuy Linux on YouTube](https://www.youtube.com/@JustAGuyLinux)
 

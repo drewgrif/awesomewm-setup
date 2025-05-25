@@ -12,7 +12,7 @@ Features GitHub-themed styling, smart keybindings, and a comprehensive widget sy
 
 ## 🚀 Installation
 
-### Quick Install (Debian/Ubuntu)
+### Quick Install
 ```bash
 git clone https://github.com/drewgrif/awesomewm-setup.git
 cd awesomewm-setup

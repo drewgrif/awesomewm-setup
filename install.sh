@@ -16,31 +16,12 @@ INSTALL_DIR="$HOME/installation"
 BUTTERSCRIPTS_REPO="https://github.com/drewgrif/butterscripts"
 
 # Installation options
-SKIP_PACKAGES=false
-SKIP_THEMES=false
-SKIP_BUTTERSCRIPTS=false
-DRY_RUN=false
 ONLY_CONFIG=false
+EXPORT_PACKAGES=false
 
 # Parse command line options
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --skip-packages)
-            SKIP_PACKAGES=true
-            shift
-            ;;
-        --skip-themes)
-            SKIP_THEMES=true
-            shift
-            ;;
-        --skip-butterscripts)
-            SKIP_BUTTERSCRIPTS=true
-            shift
-            ;;
-        --dry-run)
-            DRY_RUN=true
-            shift
-            ;;
         --only-config)
             ONLY_CONFIG=true
             shift
@@ -48,13 +29,14 @@ while [[ $# -gt 0 ]]; do
         --help)
             echo "Usage: $0 [OPTIONS]"
             echo "Options:"
-            echo "  --skip-packages      Skip apt package installation"
-            echo "  --skip-themes        Skip theme, icon, and font installations"
-            echo "  --skip-butterscripts Skip all butterscript installations"
-            echo "  --dry-run           Show what would be done without making changes"
             echo "  --only-config       Only copy config files (skip all installations)"
+            echo "  --export-packages   Export package lists for different distros and exit"
             echo "  --help              Show this help message"
             exit 0
+            ;;
+        --export-packages)
+            EXPORT_PACKAGES=true
+            shift
             ;;
         *)
             echo "Unknown option: $1"
@@ -63,6 +45,90 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# ============================================
+# Export Package Lists Function
+# ============================================
+export_packages() {
+    echo "=== AwesomeWM Setup - Package Lists for Different Distributions ==="
+    echo
+    
+    # Combine all packages
+    local all_packages=(
+        "${PACKAGES_CORE[@]}"
+        "${PACKAGES_UI[@]}"
+        "${PACKAGES_FILE_MANAGER[@]}"
+        "${PACKAGES_AUDIO[@]}"
+        "${PACKAGES_UTILITIES[@]}"
+        "${PACKAGES_TERMINAL[@]}"
+        "${PACKAGES_FONTS[@]}"
+        "${PACKAGES_BUILD[@]}"
+    )
+    
+    echo "DEBIAN/UBUNTU:"
+    echo "sudo apt install ${all_packages[*]}"
+    echo
+    echo "Note: For firefox, use firefox-esr on Debian or firefox on Ubuntu"
+    echo "Note: For modern ls, use exa on Debian 12 or eza on newer Ubuntu"
+    echo
+    
+    # Arch equivalents
+    local arch_packages=(
+        "awesome"
+        "xorg-server xorg-xinit xorg-xbacklight xbindkeys xvkbd xorg-xinput"
+        "base-devel xdotool"
+        "libnotify"
+        "rofi dunst feh lxappearance network-manager-applet redshift"
+        "thunar thunar-archive-plugin thunar-volman"
+        "gvfs dialog mtools smbclient cifs-utils unzip"
+        "pavucontrol pulsemixer pamixer pipewire-pulse"
+        "avahi acpi acpid xfce4-power-manager"
+        "flameshot qimgv firefox micro xdg-user-dirs-gtk lua-language-server"
+        "suckless-tools eza"
+        "ttf-font-awesome terminus-font"
+        "cmake meson ninja curl pkgconf"
+    )
+    
+    echo "ARCH LINUX:"
+    echo "sudo pacman -S ${arch_packages[*]}"
+    echo
+    
+    # Fedora equivalents
+    local fedora_packages=(
+        "awesome"
+        "xorg-x11-server-Xorg xorg-x11-xinit xbacklight xbindkeys xvkbd xinput"
+        "gcc make git xdotool"
+        "libnotify libnotify-devel"
+        "rofi dunst feh lxappearance NetworkManager-gnome redshift"
+        "thunar thunar-archive-plugin thunar-volman"
+        "gvfs dialog mtools samba-client cifs-utils unzip"
+        "pavucontrol pulsemixer pamixer pipewire-pulseaudio"
+        "avahi acpi acpid xfce4-power-manager"
+        "flameshot qimgv firefox micro xdg-user-dirs-gtk lua-language-server"
+        "eza"
+        "fontawesome-fonts terminus-fonts"
+        "cmake meson ninja-build curl pkgconfig"
+    )
+    
+    echo "FEDORA:"
+    echo "sudo dnf install ${fedora_packages[*]}"
+    echo
+    
+    echo "NOTE: Some packages may have different names or may not be available"
+    echo "in all distributions. You may need to:"
+    echo "  - Find equivalent packages in your distro's repositories"
+    echo "  - Install some tools from source"
+    echo "  - Use alternative package managers (AUR for Arch, Flatpak, etc.)"
+    echo
+    echo "After installing packages, you can use:"
+    echo "  $0 --only-config    # To copy just the AwesomeWM configuration files"
+}
+
+# Check if we should export packages and exit
+if [ "$EXPORT_PACKAGES" = true ]; then
+    export_packages
+    exit 0
+fi
 
 # Create a unique base temporary directory for this run
 MAIN_TEMP_DIR="/tmp/justaguylinux_awesomewm_$(date +%s)_$$"
@@ -73,11 +139,15 @@ command_exists() {
 }
 
 # ============================================
-# Error Handling
+# Error Handling and Utilities
 # ============================================
 die() {
     echo "ERROR: $*" >&2
     exit 1
+}
+
+msg() {
+    echo "$*"
 }
 
 # ============================================
@@ -99,80 +169,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# ============================================
-# Script Fetching Functions
-# ============================================
-get_butterscript() {
-    local script_path="$1"
-    local script_name=$(basename "$script_path")
-    local temp_script="$MAIN_TEMP_DIR/scripts/$script_name"
-    
-    # Create directory for downloaded scripts
-    mkdir -p "$MAIN_TEMP_DIR/scripts"
-    
-    echo "Fetching script: $script_path from butterscripts repository..."
-    
-    # Quietly download the script
-    wget -q -O "$temp_script" "https://raw.githubusercontent.com/drewgrif/butterscripts/main/$script_path"
-    local wget_status=$?
-    
-    # Check if the download was successful
-    if [ $wget_status -ne 0 ] || [ ! -f "$temp_script" ] || [ ! -s "$temp_script" ]; then
-        echo "ERROR: Failed to download script: $script_path (wget status: $wget_status)"
-        return 1
-    fi
-    
-    # Fix line endings
-    sed -i 's/\r$//' "$temp_script" 2>/dev/null
-    
-    # Make executable
-    chmod +x "$temp_script"
-    
-    # Success - return 0 instead of the path
-    return 0
-}
-
-run_butterscript() {
-    local script_path="$1"
-    local script_name=$(basename "$script_path" .sh)
-    local script_file="$MAIN_TEMP_DIR/scripts/$(basename "$script_path")"
-    
-    echo "Preparing to run: $script_path"
-    
-    # Download the script
-    get_butterscript "$script_path"
-    local get_status=$?
-    
-    if [ $get_status -ne 0 ]; then
-        echo "ERROR: Failed to download script: $script_path"
-        return 1
-    fi
-    
-    # Check that the file exists directly
-    if [ ! -f "$script_file" ]; then
-        echo "ERROR: Script file does not exist: $script_file"
-        return 1
-    fi
-    
-    # Create a temporary directory for the script to use
-    local script_temp_dir="$MAIN_TEMP_DIR/${script_name}_workdir"
-    mkdir -p "$script_temp_dir"
-    
-    echo "Running script: $script_path"
-    echo "Script file: $script_file"
-    echo "Work directory: $script_temp_dir"
-    
-    # Run the script
-    SCRIPT_TEMP_DIR="$script_temp_dir" bash "$script_file"
-    local run_status=$?
-    
-    if [ $run_status -ne 0 ]; then
-        echo "ERROR: Script execution failed with status: $run_status"
-        return 1
-    fi
-    
-    echo "Script execution completed successfully."
-    return 0
+# Butterscript helper
+get_script() {
+    wget -qO- "https://raw.githubusercontent.com/drewgrif/butterscripts/main/$1" | bash
 }
 
 # ============================================
@@ -193,53 +192,101 @@ else
     echo "This script will install and configure AwesomeWM on your Debian system."
 fi
 
-if [ "$DRY_RUN" = true ]; then
-    echo "[DRY RUN MODE] No changes will be made to your system."
-fi
-
 read -p "Do you want to continue? (y/n) " confirm
 [[ ! "$confirm" =~ ^[Yy]$ ]] && die "Installation aborted."
 
-if [ "$ONLY_CONFIG" = false ] && [ "$SKIP_PACKAGES" = false ]; then
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would run: sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get clean"
-    else
-        sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get clean
-    fi
+if [ "$ONLY_CONFIG" = false ]; then
+    msg "Updating system..."
+    sudo apt-get update && sudo apt-get upgrade -y
 fi
+
+# ============================================
+# Package Arrays (Organized by Category)
+# ============================================
+PACKAGES_CORE=(
+    awesome awesome-extra awesome-doc
+    xorg xorg-dev xbacklight xbindkeys xvkbd xinput
+    build-essential xdotool
+    libnotify-bin libnotify-dev
+)
+
+PACKAGES_UI=(
+    rofi dunst feh lxappearance network-manager-gnome redshift
+)
+
+PACKAGES_FILE_MANAGER=(
+    thunar thunar-archive-plugin thunar-volman
+    gvfs-backends dialog mtools smbclient cifs-utils unzip
+)
+
+PACKAGES_AUDIO=(
+    pavucontrol pulsemixer pamixer pipewire-audio
+)
+
+PACKAGES_UTILITIES=(
+    avahi-daemon acpi acpid xfce4-power-manager
+    flameshot qimgv nala micro xdg-user-dirs-gtk lua-check
+)
+
+PACKAGES_TERMINAL=(
+    suckless-tools
+)
+
+PACKAGES_FONTS=(
+    fonts-recommended fonts-font-awesome fonts-terminus
+)
+
+PACKAGES_BUILD=(
+    cmake meson ninja-build curl pkg-config
+)
 
 # ============================================
 # Install Required Packages
 # ============================================
 install_packages() {
-    if [ "$SKIP_PACKAGES" = true ] || [ "$ONLY_CONFIG" = true ]; then
-        echo "Skipping package installation..."
+    if [ "$ONLY_CONFIG" = true ]; then
+        msg "Skipping package installation..."
         return
     fi
     
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would install packages: awesome, dunst, rofi, thunar, and dependencies"
-        return
-    fi
+    msg "Installing core packages..."
+    sudo apt-get install -y "${PACKAGES_CORE[@]}" || die "Failed to install core packages"
+
+    msg "Installing UI components..."
+    sudo apt-get install -y "${PACKAGES_UI[@]}" || die "Failed to install UI packages"
+
+    msg "Installing file manager..."
+    sudo apt-get install -y "${PACKAGES_FILE_MANAGER[@]}" || die "Failed to install file manager"
+
+    msg "Installing audio support..."
+    sudo apt-get install -y "${PACKAGES_AUDIO[@]}" || die "Failed to install audio packages"
+
+    msg "Installing system utilities..."
+    sudo apt-get install -y "${PACKAGES_UTILITIES[@]}" || die "Failed to install utilities"
     
-    echo "Installing required packages..."
-    sudo apt-get install -y awesome awesome-extra awesome-doc xorg xorg-dev xbacklight xbindkeys xvkbd xinput build-essential network-manager-gnome pamixer thunar thunar-archive-plugin thunar-volman lxappearance dialog mtools smbclient cifs-utils avahi-daemon acpi acpid gvfs-backends xfce4-power-manager pavucontrol pulsemixer feh fonts-recommended fonts-font-awesome fonts-terminus exa suckless-tools redshift flameshot qimgv rofi dunst libnotify-bin xdotool unzip libnotify-dev firefox-esr pipewire-audio nala micro xdg-user-dirs-gtk lua-check || echo "Warning: Package installation failed."
-    echo "Package installation completed."
+    # Try firefox-esr first (Debian), then firefox (Ubuntu)
+    sudo apt-get install -y firefox-esr 2>/dev/null || sudo apt-get install -y firefox 2>/dev/null || msg "Note: firefox not available, skipping..."
+
+    msg "Installing terminal tools..."
+    sudo apt-get install -y "${PACKAGES_TERMINAL[@]}" || die "Failed to install terminal tools"
+    
+    # Try exa first (Debian 12), then eza (newer Ubuntu)
+    sudo apt-get install -y exa 2>/dev/null || sudo apt-get install -y eza 2>/dev/null || msg "Note: exa/eza not available, skipping..."
+
+    msg "Installing fonts..."
+    sudo apt-get install -y "${PACKAGES_FONTS[@]}" || die "Failed to install fonts"
+
+    msg "Installing build dependencies..."
+    sudo apt-get install -y "${PACKAGES_BUILD[@]}" || die "Failed to install build tools"
+    
+    msg "Package installation completed."
 }
 
+# Build dependencies are now included in PACKAGES_BUILD array
+# This function is kept for compatibility but is no longer needed
 install_reqs() {
-    if [ "$SKIP_PACKAGES" = true ] || [ "$ONLY_CONFIG" = true ]; then
-        echo "Skipping build dependencies installation..."
-        return
-    fi
-    
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would install build dependencies: cmake, meson, ninja-build, curl, pkg-config"
-        return
-    fi
-    
-    echo "Updating package lists and installing required dependencies..."
-    sudo apt-get install -y cmake meson ninja-build curl pkg-config || { echo "Package installation failed."; exit 1; }
+    # Build dependencies are installed as part of install_packages
+    return
 }
 
 # ============================================
@@ -247,28 +294,22 @@ install_reqs() {
 # ============================================
 enable_services() {
     if [ "$ONLY_CONFIG" = true ]; then
-        echo "Skipping service configuration..."
+        msg "Skipping service configuration..."
         return
     fi
     
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would enable services: avahi-daemon, acpid"
-        return
-    fi
-    
-    echo "Enabling required services..."
-    sudo systemctl enable avahi-daemon || echo "Warning: Failed to enable avahi-daemon."
-    sudo systemctl enable acpid || echo "Warning: Failed to enable acpid."
+    msg "Enabling required services..."
+    sudo systemctl enable avahi-daemon acpid
 }
 
 # ============================================
 # Set Up User Directories
 # ============================================
 setup_user_dirs() {
-    echo "Updating user directories..."
-    xdg-user-dirs-update || echo "Warning: Failed to update user directories."
-    mkdir -p ~/Screenshots/ || echo "Warning: Failed to create Screenshots directory."
-    echo "User directories updated."
+    msg "Updating user directories..."
+    xdg-user-dirs-update
+    mkdir -p ~/Screenshots/
+    msg "User directories updated."
 }
 
 # ============================================
@@ -290,156 +331,24 @@ check_awesomewm() {
 # Move Config Files
 # ============================================
 setup_awesomewm_config() {
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would copy AwesomeWM configuration files to $CONFIG_DIR"
-        return
-    fi
-    
+    msg "Setting up configuration..."
     mkdir -p "$CONFIG_DIR"
-    cp -r "$CLONED_DIR/awesome/rc.lua" "$CONFIG_DIR/" || echo "Warning: Failed to copy rc.lua."
+    
+    # Copy rc.lua
+    cp "$CLONED_DIR/awesome/rc.lua" "$CONFIG_DIR/" || die "Failed to copy rc.lua"
+    
+    # Copy configuration directories
     for dir in modules themes wallpaper scripts picom rofi dunst; do
-        cp -r "$CLONED_DIR/awesome/$dir" "$CONFIG_DIR/" || echo "Warning: Failed to copy $dir."
+        if [ -d "$CLONED_DIR/awesome/$dir" ]; then
+            cp -r "$CLONED_DIR/awesome/$dir" "$CONFIG_DIR/" || die "Failed to copy $dir"
+        else
+            msg "Warning: awesome/$dir directory not found, skipping..."
+        fi
     done
     
-    echo "AwesomeWM configuration files copied successfully."
+    msg "AwesomeWM configuration files copied successfully."
 }
 
-# ============================================
-# Install ft-picom
-# ============================================
-install_ftlabs_picom() {
-    if [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
-        echo "Skipping picom installation..."
-        return
-    fi
-    
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would install ftlabs picom from butterscripts"
-        return
-    fi
-    
-    run_butterscript "setup/install_picom.sh"
-}
-
-# ============================================
-# Install Wezterm
-# ============================================
-install_wezterm() {
-    if [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
-        echo "Skipping wezterm installation..."
-        return
-    fi
-    
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would install wezterm from butterscripts"
-        return
-    fi
-    
-    run_butterscript "wezterm/install_wezterm.sh"
-}
-
-# ============================================
-# Install st
-# ============================================
-install_st() {
-    if [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
-        echo "Skipping st terminal installation..."
-        return
-    fi
-    
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would install st terminal from butterscripts"
-        return
-    fi
-    
-    run_butterscript "st/install_st.sh"
-}
-
-# ============================================
-# Install Fonts
-# ============================================
-install_fonts() {
-    if [ "$SKIP_THEMES" = true ] || [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
-        echo "Skipping font installation..."
-        return
-    fi
-    
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would install nerd fonts from butterscripts"
-        return
-    fi
-    
-    echo "Installing fonts..."
-    run_butterscript "theming/install_nerdfonts.sh"
-}
-
-# ============================================
-# Install GTK Theme & Icons
-# ============================================
-install_theming() {
-    if [ "$SKIP_THEMES" = true ] || [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
-        echo "Skipping theme installation..."
-        return
-    fi
-    
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would install GTK themes and icons from butterscripts"
-        return
-    fi
-    
-    run_butterscript "theming/install_theme.sh"
-}
-
-# ============================================
-# Install Login Manager
-# ============================================
-install_displaymanager() {
-    if [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
-        echo "Skipping display manager installation..."
-        return
-    fi
-    
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would install LightDM from butterscripts"
-        return
-    fi
-    
-    run_butterscript "system/install_lightdm.sh"
-}
-
-# ============================================
-# Replace .bashrc
-# ============================================
-replace_bashrc() {
-    if [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
-        echo "Skipping bashrc configuration..."
-        return
-    fi
-    
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would update bashrc from butterscripts"
-        return
-    fi
-    
-    run_butterscript "system/add_bashrc.sh"
-}
-
-# ============================================
-# Install Optional Packages
-# ============================================
-install_optionals() {
-    if [ "$SKIP_BUTTERSCRIPTS" = true ] || [ "$ONLY_CONFIG" = true ]; then
-        echo "Skipping optional tools installation..."
-        return
-    fi
-    
-    if [ "$DRY_RUN" = true ]; then
-        echo "[DRY RUN] Would install optional tools from butterscripts"
-        return
-    fi
-    
-    run_butterscript "setup/optional_tools.sh"
-}
 
 # ============================================
 # Main Execution
@@ -450,14 +359,65 @@ enable_services
 setup_user_dirs
 check_awesomewm
 setup_awesomewm_config
-install_ftlabs_picom
-install_st
-install_wezterm
-install_fonts
-install_theming
-install_displaymanager
-replace_bashrc
-install_optionals
 
+# Install essential components
+if [ "$ONLY_CONFIG" = false ]; then
+    mkdir -p "$MAIN_TEMP_DIR" && cd "$MAIN_TEMP_DIR"
+
+    msg "Installing picom..."
+    get_script "setup/install_picom.sh"
+
+    msg "Installing wezterm..."
+    get_script "wezterm/install_wezterm.sh"
+
+    msg "Installing st terminal..."
+    wget -O "$MAIN_TEMP_DIR/install_st.sh" "https://raw.githubusercontent.com/drewgrif/butterscripts/main/st/install_st.sh"
+    chmod +x "$MAIN_TEMP_DIR/install_st.sh"
+    # Run in current terminal session to preserve interactivity
+    bash "$MAIN_TEMP_DIR/install_st.sh"
+
+    msg "Installing fonts..."
+    get_script "theming/install_nerdfonts.sh"
+
+    msg "Installing themes..."
+    get_script "theming/install_theme.sh"
+
+    msg "Downloading display manager installer..."
+    wget -O "$MAIN_TEMP_DIR/install_lightdm.sh" "https://raw.githubusercontent.com/drewgrif/butterscripts/main/system/install_lightdm.sh"
+    chmod +x "$MAIN_TEMP_DIR/install_lightdm.sh"
+    msg "Running display manager installer..."
+    # Run in current terminal session to preserve interactivity
+    bash "$MAIN_TEMP_DIR/install_lightdm.sh"
+
+    # Bashrc configuration
+    clear
+    read -p "Replace your .bashrc with justaguylinux .bashrc? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        msg "Configuring bashrc..."
+        get_script "system/add_bashrc.sh"
+    fi
+
+    # Optional tools
+    clear
+    read -p "Install optional tools (browsers, editors, etc)? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        msg "Downloading optional tools installer..."
+        wget -O "$MAIN_TEMP_DIR/optional_tools.sh" "https://raw.githubusercontent.com/drewgrif/butterscripts/main/setup/optional_tools.sh"
+        chmod +x "$MAIN_TEMP_DIR/optional_tools.sh"
+        msg "Running optional tools installer..."
+        # Run in current terminal session to preserve interactivity
+        if bash "$MAIN_TEMP_DIR/optional_tools.sh"; then
+            msg "Optional tools completed successfully"
+        else
+            msg "Optional tools exited (this is normal if cancelled by user)"
+        fi
+    fi
+else
+    msg "Skipping external tool installation (--only-config mode)"
+fi
+
+echo
 echo "All installations completed successfully!"
 echo "Log out and select AwesomeWM from your display manager to start using it."

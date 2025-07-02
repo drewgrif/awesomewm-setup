@@ -338,7 +338,7 @@ setup_awesomewm_config() {
     cp "$CLONED_DIR/awesome/rc.lua" "$CONFIG_DIR/" || die "Failed to copy rc.lua"
     
     # Copy configuration directories
-    for dir in modules themes wallpaper scripts picom rofi dunst; do
+    for dir in modules themes scripts picom rofi dunst; do
         if [ -d "$CLONED_DIR/awesome/$dir" ]; then
             cp -r "$CLONED_DIR/awesome/$dir" "$CONFIG_DIR/" || die "Failed to copy $dir"
         else
@@ -381,6 +381,13 @@ if [ "$ONLY_CONFIG" = false ]; then
 
     msg "Installing themes..."
     get_script "theming/install_theme.sh"
+    
+    msg "Downloading wallpaper directory..."
+    cd "$CONFIG_DIR"
+    git clone --depth 1 --filter=blob:none --sparse https://github.com/drewgrif/butterscripts.git "$MAIN_TEMP_DIR/butterscripts-wallpaper" || die "Failed to clone butterscripts"
+    cd "$MAIN_TEMP_DIR/butterscripts-wallpaper"
+    git sparse-checkout set wallpaper || die "Failed to set sparse-checkout"
+    cp -r wallpaper "$CONFIG_DIR"/ || die "Failed to copy wallpaper directory"
 
     msg "Downloading display manager installer..."
     wget -O "$MAIN_TEMP_DIR/install_lightdm.sh" "https://raw.githubusercontent.com/drewgrif/butterscripts/main/system/install_lightdm.sh"

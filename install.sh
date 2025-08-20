@@ -394,16 +394,7 @@ if [ "$ONLY_CONFIG" = false ]; then
     chmod +x "$MAIN_TEMP_DIR/install_lightdm.sh"
     msg "Running display manager installer..."
     # Run in current terminal session to preserve interactivity
-    bash "$MAIN_TEMP_DIR/install_lightdm.sh"
-
-    # Bashrc configuration
-    clear
-    read -p "Replace your .bashrc with justaguylinux .bashrc? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        msg "Configuring bashrc..."
-        get_script "system/add_bashrc.sh"
-    fi
+    bash "$MAIN_TEMP_DIR/install_lightdm.sh
 
     # Optional tools
     clear

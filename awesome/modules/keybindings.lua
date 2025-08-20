@@ -219,6 +219,11 @@ end, {description = "swap with client below", group = "client"})
         end,
         {description = "toggle pulsemixer scratchpad", group = "scratchpad"}),
         
+        awful.key({ modkey, "Shift" }, "n", function() 
+            awful.spawn.with_shell("bash -ic 'note clip && notify-send \" Clipboard saved to notes\"'")
+        end,
+        {description = "paste to note (bashrc note)", group = "system"}),
+        
         awful.key({ modkey, "Shift" }, "m", function() 
             local scratchpad = require("modules.scratchpad")
             scratchpad.music:toggle()

@@ -211,7 +211,7 @@ PACKAGES_CORE=(
 )
 
 PACKAGES_UI=(
-    rofi dunst feh lxappearance network-manager-gnome redshift
+    rofi dunst feh lxappearance network-manager-gnome
 )
 
 PACKAGES_FILE_MANAGER=(
@@ -225,7 +225,7 @@ PACKAGES_AUDIO=(
 
 PACKAGES_UTILITIES=(
     avahi-daemon acpi acpid xfce4-power-manager
-    flameshot qimgv nala micro xdg-user-dirs-gtk lua-check
+    flameshot qimgv micro xdg-user-dirs-gtk lua-check
 )
 
 PACKAGES_TERMINAL=(

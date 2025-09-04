@@ -1,0 +1,52 @@
+# Installation logs
+*install.log
+justaguylinux-awesomewm-install.log
+
+# Editor backup and temporary files
+*~
+*.swp
+*.swo
+.*.swp
+.*.swo
+*.tmp
+.DS_Store
+
+# Personal configuration overrides
+awesome/scripts/autorun.sh.personal
+awesome/personal/
+
+# Cache and runtime files
+*.cache
+.cache/
+awesome/themes/*/wallpaper
+awesome/wallpapers/current
+
+# IDE and editor specific files
+.vscode/
+.idea/
+*.code-workspace
+.luarc.json
+.luarc.jsonc
+
+# OS generated files
+Thumbs.db
+.directory
+*.log
+
+# Backup directories
+backup/
+*.backup
+
+# Personal notes and scratch files
+TODO.md
+NOTES.md
+scratch.*
+
+# Claude/AI assistant files
+.claude/
+claude-session*
+.ai-*
+*.claude
+ai-conversation*
+claude-workspace*
+CLAUDE.md

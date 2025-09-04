@@ -96,6 +96,15 @@ sudo zypper install awesome rofi dunst picom thunar xbacklight \
 
 **Note:** The script can be run from any location - it automatically detects its directory.
 
+### Testing Configuration
+```bash
+# Test AwesomeWM configuration syntax before applying
+awesome -k ~/.config/awesome/rc.lua
+
+# Restart AwesomeWM (from within AwesomeWM session)
+awesome.restart()
+```
+
 ---
 
 ## 📦 Module Overview

@@ -108,6 +108,28 @@ function keybindings.init()
                   {description = "increase client height", group = "layout"}),
         awful.key({ modkey, "Control" }, "Up", function() awful.client.incwfact(-0.05) end,
                   {description = "decrease client height", group = "layout"}),
+
+        -- Layout switching
+        awful.key({ "Control", "Shift" }, "1", function()
+            awful.layout.set(awful.layout.layouts[1])
+            awful.spawn.with_shell("notify-send 'Layout' 'Tile'")
+        end, {description = "set tile layout", group = "layout"}),
+        awful.key({ "Control", "Shift" }, "2", function()
+            awful.layout.set(awful.layout.layouts[2])
+            awful.spawn.with_shell("notify-send 'Layout' 'Tile Left'")
+        end, {description = "set tile.left layout", group = "layout"}),
+        awful.key({ "Control", "Shift" }, "3", function()
+            awful.layout.set(awful.layout.layouts[3])
+            awful.spawn.with_shell("notify-send 'Layout' 'Fair'")
+        end, {description = "set fair layout", group = "layout"}),
+        awful.key({ "Control", "Shift" }, "4", function()
+            awful.layout.set(awful.layout.layouts[4])
+            awful.spawn.with_shell("notify-send 'Layout' 'Fair Horizontal'")
+        end, {description = "set fair.horizontal layout", group = "layout"}),
+        awful.key({ "Control", "Shift" }, "5", function()
+            awful.layout.set(awful.layout.layouts[5])
+            awful.spawn.with_shell("notify-send 'Layout' 'Spiral'")
+        end, {description = "set spiral layout", group = "layout"}),
         
 -- Focus control
 awful.key({ modkey }, "Left", function() awful.client.focus.byidx(1) end,

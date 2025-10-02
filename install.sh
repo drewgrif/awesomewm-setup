@@ -394,7 +394,7 @@ if [ "$ONLY_CONFIG" = false ]; then
     chmod +x "$MAIN_TEMP_DIR/install_lightdm.sh"
     msg "Running display manager installer..."
     # Run in current terminal session to preserve interactivity
-    bash "$MAIN_TEMP_DIR/install_lightdm.sh
+    bash "$MAIN_TEMP_DIR/install_lightdm.sh"
 
     # Optional tools
     clear

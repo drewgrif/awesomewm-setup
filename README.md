@@ -1,8 +1,21 @@
 # 🪄 AwesomeWM Modular Configuration
 
+> **🚨 REPOSITORY MIGRATION NOTICE**
+>
+> This repository has moved to **[Codeberg](https://codeberg.org/justaguylinux/awesomewm-setup)**
+>
+> - **Primary repository**: https://codeberg.org/justaguylinux/awesomewm-setup
+> - **This GitHub repository**: Mirror only (read-only)
+> - **Migration deadline**: December 15, 2025 - GitHub mirror will be archived
+>
+> Please update your bookmarks and git remotes:
+> ```bash
+> git remote set-url origin https://codeberg.org/justaguylinux/awesomewm-setup.git
+> ```
+
 ![Made for Debian](https://img.shields.io/badge/Made%20for-Debian-A81D33?style=for-the-badge&logo=debian&logoColor=white)
 
-A modular, organized AwesomeWM configuration with clean separation of components.  
+A modular, organized AwesomeWM configuration with clean separation of components.
 Features GitHub-themed styling, smart keybindings, and a comprehensive widget system — ready to use out of the box.
 
 ![2025-04-13_17-38](https://github.com/user-attachments/assets/d141527d-a163-4c5e-85b9-d56c00c03365)
@@ -14,7 +27,7 @@ Features GitHub-themed styling, smart keybindings, and a comprehensive widget sy
 
 ### Quick Install
 ```bash
-git clone https://github.com/drewgrif/awesomewm-setup.git
+git clone https://codeberg.org/justaguylinux/awesomewm-setup.git
 cd awesomewm-setup
 chmod +x install.sh
 ./install.sh
